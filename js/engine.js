@@ -758,6 +758,8 @@ export class Calculator {
       this.x = roundTo(v, dd, this.sw.round);
       this.xDec = dd;
     }
+    // 空のメモリーを呼び出したときは「0.」（取扱説明書 p.27）
+    if (this.x === 0n) this.xDec = null;
     this.hasOperand = true;
     this.showEq = false;
     this.ctrShow = ctr;
@@ -948,6 +950,19 @@ export class Calculator {
   // ================= 表示 =================
   // cells: 左から12桁 {ch, dp, comma}
   getDisplay() {
+    const D = this.rawDisplay();
+    // 負号は数値のすぐ左の桁に表示（12桁すべて使うときは左端の記号）
+    if (D.minus) {
+      const first = D.cells.findIndex((c) => c.ch !== '');
+      if (first > 0) {
+        D.cells[first - 1].ch = '-';
+        D.minus = false;
+      }
+    }
+    return D;
+  }
+
+  rawDisplay() {
     const D = {
       on: this.power,
       counter: '',
@@ -1040,7 +1055,7 @@ export class Calculator {
     const maxDec = 12 - Math.max(ip, 1);
     let int = (a / S).toString();
     let frac = (a % S).toString().padStart(SD, '0').slice(0, maxDec);
-    if (this.xDec !== null && a !== 0n) frac = frac.slice(0, this.xDec);
+    if (this.xDec !== null) frac = frac.slice(0, this.xDec);
     else frac = frac.replace(/0+$/, '');
     placeNumber(D, int, frac);
     D.minus = this.x < 0n;

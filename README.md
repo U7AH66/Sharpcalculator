@@ -22,10 +22,10 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 
 | # | Behavior implemented | Check |
 |---|---|---|
-| 1 | Negative sign uses the fixed “−” segment in the left column (per the LCD diagram), not a minus next to the digits | ☐ |
+| 1 | Negative sign appears directly left of the number (`-5.`); only a full 12-digit number uses the left-column “−” | ✅ confirmed on device (12-digit case inferred) |
 | 2 | `a + =` → a; `a − =` → −a (a becomes the constant); `a × =` → a²; `a ÷ =` → 1/a | ✅ confirmed on device |
 | 3 | `x %` with no operator → 0 | ✅ confirmed on device |
-| 4 | With TAB fixed (e.g. 2), a zero result shows `0.` not `0.00` (from p.27 showing `0.` after GT GT CM) | ☐ |
+| 4 | With TAB fixed (e.g. 2), a zero result shows `0.00`; recalling an empty GT/memory shows `0.` (p.27) | ✅ result confirmed on device (recall case from manual) |
 | 5 | CE right after a result clears the display to 0; CE right after an operator does nothing | ☐ |
 | 6 | → only edits a number being entered; it does nothing on a calculated result | ☐ |
 | 7 | M+/M− after a bare number adds just that number (no constant applied); with a pending operation it acts as = and sets the constant; M+/M− are not added to GT | ☐ |
