@@ -24,35 +24,15 @@ function save() {
 const calc = new Calculator(load());
 
 // ---------- 触覚フィードバック ----------
-// iOS 18以降の Safari は Vibration API 非対応のため、システムスイッチの切替で触覚を発生させる
-// iOS ではタッチ開始時はユーザー操作として扱われないため、指を離した瞬間（touchend）に発生させる
-const haptic = (() => {
-  if (typeof navigator.vibrate === 'function') {
-    return () => navigator.vibrate(10);
-  }
-  const label = document.createElement('label');
-  label.className = 'haptic';
-  label.setAttribute('aria-hidden', 'true');
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.setAttribute('switch', '');
-  input.tabIndex = -1;
-  label.appendChild(input);
-  document.body.appendChild(label);
-  let pending = false;
-  document.addEventListener(
-    'touchend',
-    () => {
-      if (!pending) return;
-      pending = false;
-      label.click();
-    },
-    { passive: true }
-  );
-  return () => {
-    pending = true;
-  };
-})();
+// Android 等：Vibration API。
+// iPhone（iOS 26.5 以降）：スクリプトからは触覚を出せないため、各キーの上に透明な
+// <input type="checkbox" switch> を重ね、指が直接スイッチをタップしたときのシステム触覚を使う。
+const hasVibrate = typeof navigator.vibrate === 'function';
+const useTapSwitch =
+  (!hasVibrate && navigator.maxTouchPoints > 0) || new URLSearchParams(location.search).has('tapswitch');
+const haptic = () => {
+  if (hasVibrate) navigator.vibrate(10);
+};
 
 // ---------- SVG 本体 ----------
 function el(tag, attrs = {}, parent, text) {
@@ -70,7 +50,10 @@ const svg = el('svg', {
   role: 'application',
   'aria-label': 'SHARP EL-G37',
 });
-document.getElementById('stage').appendChild(svg);
+const wrap = document.createElement('div');
+wrap.className = 'calc-wrap';
+wrap.appendChild(svg);
+document.getElementById('stage').appendChild(wrap);
 
 svg.innerHTML = `
 <defs>
@@ -206,24 +189,27 @@ function makeSwitch({ name, x, y, w, h, positions, values }) {
     place();
     save();
   };
+  sw.start = (e) => {
+    wake();
+    if (values.length === 2) setTo(values[values.indexOf(calc.sw[name]) ^ 1]);
+    else {
+      dragging = e.pointerId;
+      setTo(pick(e.clientX));
+    }
+  };
   g.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    dragging = e.pointerId;
-    g.setPointerCapture(e.pointerId);
-    if (values.length === 2) {
-      setTo(values[values.indexOf(calc.sw[name]) ^ 1]);
-      dragging = null;
-    } else setTo(pick(e.clientX));
-    wake();
+    sw.start(e);
   });
-  g.addEventListener('pointermove', (e) => {
+  window.addEventListener('pointermove', (e) => {
     if (dragging === e.pointerId) setTo(pick(e.clientX));
   });
   const end = (e) => {
     if (dragging === e.pointerId) dragging = null;
   };
-  g.addEventListener('pointerup', end);
-  g.addEventListener('pointercancel', end);
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
+  sw.hit = { x: x - 10, y: y - 30, w: w + 20, h: h + 40 };
   return sw;
 }
 
@@ -333,24 +319,23 @@ keyLayer.addEventListener('pointerdown', (e) => {
   const g = e.target.closest('.key');
   if (!g) return;
   e.preventDefault();
-  try {
-    g.setPointerCapture(e.pointerId);
-  } catch (err) {
-    /* 一部ブラウザでは不要 */
-  }
+  keyDown(g.dataset.key, e.pointerId);
+});
+
+function keyDown(key, pointerId) {
   wake();
-  const key = g.dataset.key;
+  const g = keyEls.get(key);
   down(g);
   haptic();
-  held.set(e.pointerId, key);
+  held.set(pointerId, key);
   if (active.id === null) {
-    active.id = e.pointerId;
+    active.id = pointerId;
     fire(key);
   } else {
     // 別のキーを押している間に押したキーは、先のキーを離したときに入力される
-    queue.push({ id: e.pointerId, key });
+    queue.push({ id: pointerId, key });
   }
-});
+}
 
 function release(e) {
   const key = held.get(e.pointerId);
@@ -370,9 +355,41 @@ function release(e) {
     }
   }
 }
-keyLayer.addEventListener('pointerup', release);
-keyLayer.addEventListener('pointercancel', release);
-keyLayer.addEventListener('lostpointercapture', release);
+window.addEventListener('pointerup', release);
+window.addEventListener('pointercancel', release);
+
+// iPhone：透明なシステムスイッチを各キー・スイッチの上に重ねる（指で直接タップ → 触覚）
+if (useTapSwitch) {
+  const layer = document.createElement('div');
+  layer.className = 'tap-layer';
+  wrap.appendChild(layer);
+  const targets = [
+    ...KEYS.map((d) => ({ x: d.x, y: d.y, w: KW, h: d.h + 6, key: d.k, label: d.label })),
+    ...switches.map((sw) => ({ ...sw.hit, sw, label: sw.name })),
+  ];
+  for (const t of targets) {
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.setAttribute('switch', '');
+    inp.className = 'tap';
+    inp.tabIndex = -1;
+    inp.setAttribute('aria-label', t.label);
+    inp.addEventListener('pointerdown', (e) => {
+      if (t.key) keyDown(t.key, e.pointerId);
+      else t.sw.start(e);
+    });
+    layer.appendChild(inp);
+    t.el = inp;
+  }
+  // 本体に対する割合で配置（画面サイズが変わってもずれない）
+  for (const t of targets) {
+    const st = t.el.style;
+    st.left = `${(t.x / W) * 100}%`;
+    st.top = `${(t.y / H) * 100}%`;
+    st.width = `${(t.w / W) * 100}%`;
+    st.height = `${(t.h / H) * 100}%`;
+  }
+}
 
 // ハードウェアキーボード（PCで使うとき用）
 const KB = {

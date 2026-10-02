@@ -5,7 +5,7 @@ A personal, offline-capable web replica of the SHARP EL-G37 学校用電卓, bui
 
 - Pure static files (HTML/CSS/JS, no build step) — works on GitHub Pages.
 - Install on iPhone: open the site in Safari → 共有 → **ホーム画面に追加**. Runs full-screen and offline.
-- Haptics: every key and switch fires a haptic tap (iPhone: iOS 18+ with システムの触覚 enabled, fires as the finger lifts; Android: vibration on press).
+- Haptics: every key and switch fires a haptic tap. iPhone: an invisible system switch sits over each key, because since iOS 26.5 Safari only plays the haptic when a finger taps a switch directly (needs システムの触覚 on; the tick comes as the finger lifts). Android: vibration on press. `?tapswitch` forces the iPhone overlay on other browsers for testing.
 - Memory, GT memory, switch positions and the last 日数/時間 mode are kept when the app is closed
   (like the built-in battery). 自動節電機能: display turns off after ~7 minutes; press **C (ON)** or **CA**.
 - Desktop keyboard (extra, not on the device): digits, `+ - * / = % .`, Enter (=), Backspace (→),
