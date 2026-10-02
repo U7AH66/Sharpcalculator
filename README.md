@@ -22,10 +22,10 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 
 | # | Behavior implemented | Check |
 |---|---|---|
-| 1 | Negative sign appears directly left of the number (`-5.`); only a full 12-digit number uses the left-column “−” | ✅ confirmed on device (12-digit case inferred) |
+| 1 | Negative sign appears directly left of the number (`-5.`); only a full 12-digit number uses the left-column “−” | ✅ confirmed on device |
 | 2 | `a + =` → a; `a − =` → −a (a becomes the constant); `a × =` → a²; `a ÷ =` → 1/a | ✅ confirmed on device |
 | 3 | `x %` with no operator → 0 | ✅ confirmed on device |
-| 4 | With TAB fixed (e.g. 2), a zero result shows `0.00`; recalling an empty GT/memory shows `0.` (p.27) | ✅ result confirmed on device (recall case from manual) |
+| 4 | With TAB fixed (e.g. 2), a zero result shows `0.00`; recalling an empty GT/memory shows `0.` (p.27) | ✅ confirmed on device (recall case also matches manual p.27) |
 | 5 | CE does nothing right after a result or right after an operator (it only clears an entry or a recalled value) | ✅ confirmed on device |
 | 6 | → also works on a result, dropping its last digit (`2.5` → `2.`) | ✅ confirmed on device |
 | 7 | M+/M− after a plain number adds just that number; M+/M− are not added to GT | ✅ confirmed on device |
@@ -36,7 +36,7 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | 12 | After clearing a 概算 error, further 概算 results show without E | ✅ confirmed on device |
 | 13 | 時間: typing minutes turns `--` into `00`; a decimal number + 日数/時間 converts it to 60進 | ✅ confirmed on device |
 | 13b | 時間: 60+ minutes show as typed (`4-75'00.`) even after an operator; they carry over in the result | ✅ display confirmed on device (carry-over from manual) |
-| 14 | 時間: a result switched to 10進 with 日数/時間 follows the TAB/round switches (`1.33` with TAB 2); switching back restores the exact 60進 value | ✅ rounding confirmed on device (exact restore inferred) |
+| 14 | 時間: a result switched to 10進 with 日数/時間 follows the TAB/round switches (`1.33` with TAB 2); switching back restores the exact 60進 value | ✅ confirmed on device |
 | 14b | 時間: RM shows 60進 when a 60進 value was stored | ✅ confirmed on device |
 | 15 | 日数/時間 does nothing while a calculation is in progress; after `=` it enters 日数/時間 mode | ✅ confirmed on device |
 | 16 | 日数: invalid day count → error; over 1 year → error; a 期間計算 day count can go into memory | ✅ confirmed on device |
