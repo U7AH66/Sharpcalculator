@@ -158,6 +158,8 @@ export class Calculator {
     this.dayOp = null;
     this.xDoy = 1;
     this.pendingApprox = false;
+    this.approxOK = false; // 概算エラー解除後は概算のまま計算を続ける
+    this.xEntryShow = null; // 演算キー直後に入力どおり表示する時間置数
     this.fresh = false;
   }
 
@@ -194,6 +196,7 @@ export class Calculator {
     const wasFresh = this.fresh;
     this.fresh = false;
     this.showDot = false;
+    if (key !== 'CM') this.xEntryShow = null;
     try {
       this.dispatch(key, wasFresh);
     } catch (e) {
@@ -333,8 +336,8 @@ export class Calculator {
       return;
     }
     if (e.frac === null) {
+      if (e.int.length >= 12 && e.int !== '0') fail(3); // 13桁目は入らない
       e.int = e.int === '0' ? d : e.int + d;
-      if (e.int.length > 12) fail(3);
     } else {
       if (e.int.length + e.frac.length >= 12) return;
       e.frac += d;
@@ -432,7 +435,9 @@ export class Calculator {
   settle() {
     if (this.pendingApprox) {
       this.pendingApprox = false;
-      this.err = { code: 10 };
+      if (!this.approxOK) this.err = { code: 10 };
+    } else if (intDigits(this.x) <= 12) {
+      this.approxOK = false;
     }
   }
 
@@ -447,7 +452,9 @@ export class Calculator {
     this.pendingApprox = false;
     if (this.hasOperand) {
       const consumer = this.op || op;
+      const firstTime = !this.op && this.entry && this.entry.kind === 'time' ? { ...this.entry } : null;
       const { v, sexa } = this.takeOperand(consumer);
+      this.pendingEntryShow = firstTime;
       if (this.op) {
         const s = this.sexaOf(this.op, this.accSexa, sexa);
         this.acc = this.intermediate(this.apply(this.acc, this.op, v), s);
@@ -475,6 +482,8 @@ export class Calculator {
     this.showEq = false;
     this.ctrShow = 'entries';
     this.lastKey = 'op';
+    this.xEntryShow = this.pendingEntryShow || null;
+    this.pendingEntryShow = null;
     this.settle();
   }
 
@@ -669,7 +678,8 @@ export class Calculator {
   // ---- → ----
   shift() {
     const e = this.entry;
-    if (!e || e.uncounted) return;
+    if (!e) return this.shiftResult();
+    if (e.uncounted) return;
     this.lastKey = 'digit';
     if (e.kind === 'time') {
       const st = e.stage;
@@ -701,16 +711,39 @@ export class Calculator {
     }
   }
 
+  shiftResult() {
+    if (this.op && !this.hasOperand) return;
+    if (this.xKind !== 'num' || (this.xSexa && this.mode === 'time') || intDigits(this.x) > 12) return;
+    let { int, frac } = this.shownDigits();
+    if (frac.length) frac = frac.slice(0, -1);
+    else int = int.length > 1 ? int.slice(0, -1) : '0';
+    const v = parseDigits(int, frac);
+    this.x = this.x < 0n ? -v : v;
+    this.xDec = frac.length;
+    this.lastKey = 'SHIFT';
+  }
+
+  // 表示されている数字（整数部・小数部）
+  shownDigits() {
+    const a = abs(this.x);
+    const maxDec = 12 - Math.max(intDigits(a), 1);
+    const int = (a / S).toString();
+    let frac = (a % S).toString().padStart(SD, '0').slice(0, maxDec);
+    if (this.xDec !== null) frac = frac.slice(0, this.xDec);
+    else frac = frac.replace(/0+$/, '');
+    return { int, frac };
+  }
+
   clearErrShift() {
     const code = this.err.code;
     this.err = null;
-    if (code === 10) return; // 概算値のまま計算を続ける
-    const e = this.entry;
-    if (!e) return;
-    if (code === 3) {
-      e.int = e.int.slice(0, 12);
+    if (code === 10) {
+      this.approxOK = true; // 概算値のまま計算を続ける
       return;
     }
+    const e = this.entry;
+    if (!e) return;
+    if (code === 3) return;
     if (code === 8) {
       e.int = e.int.slice(0, -1) || '0';
       return;
@@ -721,20 +754,18 @@ export class Calculator {
   clearErrCE() {
     const code = this.err.code;
     this.err = null;
-    if (code === 10) return;
+    if (code === 10) {
+      this.approxOK = true;
+      return;
+    }
     this.blankEntry();
   }
 
   // ---- CE ----
   keyCE() {
-    if (this.entry || this.hasOperand) {
-      this.blankEntry();
-    } else if (!this.op && !this.dayOp) {
-      this.x = 0n;
-      this.xSexa = false;
-      this.xKind = 'num';
-      this.xDec = null;
-    }
+    // 計算結果や演算キーの直後には働かない
+    if (!this.entry && !this.hasOperand) return;
+    this.blankEntry();
     this.showEq = false;
     this.ctrShow = 'entries';
     this.lastKey = 'CE';
@@ -812,6 +843,7 @@ export class Calculator {
   // ---- 日数/時間 ----
   keyDT(wasFresh) {
     if (this.mode === 'normal') {
+      if (this.op || this.entry) return; // 計算途中では働かない
       const m = this.lastMode;
       this.clearCalc();
       this.mode = m;
@@ -1011,20 +1043,17 @@ export class Calculator {
     const e = this.entry;
     if (e) {
       if (e.kind === 'num') {
-        if (code === 3) placeApprox(D, BigInt(e.int) * S, e.neg);
-        else {
-          placeNumber(D, e.int, e.frac || '');
-          D.minus = e.neg;
-        }
-      } else if (e.kind === 'time') {
-        const mm = e.m === '' && e.stage === 'm' ? '00' : (e.m || '').slice(-2).padStart(2, '0');
-        let ss = '--';
-        if (e.stage === 's' || (e.m && e.m.length)) ss = (e.s || '').slice(-2).padStart(2, '0');
-        placeTime(D, e.h.replace(/^0+(?=\d)/, ''), mm, ss);
+        placeNumber(D, e.int, e.frac || '');
         D.minus = e.neg;
+      } else if (e.kind === 'time') {
+        placeTimeEntry(D, e);
       } else if (e.kind === 'date') {
         placeDate(D, e.m.replace(/^0+(?=\d)/, ''), e.d === '' ? '' : e.d.slice(-2).replace(/^0(?=\d)/, ''));
       }
+      return D;
+    }
+    if (this.xEntryShow) {
+      placeTimeEntry(D, this.xEntryShow);
       return D;
     }
     if (this.xKind === 'date') {
@@ -1050,13 +1079,7 @@ export class Calculator {
       placeApprox(D, this.x, this.x < 0n);
       return D;
     }
-    const a = abs(this.x);
-    const ip = intDigits(a);
-    const maxDec = 12 - Math.max(ip, 1);
-    let int = (a / S).toString();
-    let frac = (a % S).toString().padStart(SD, '0').slice(0, maxDec);
-    if (this.xDec !== null) frac = frac.slice(0, this.xDec);
-    else frac = frac.replace(/0+$/, '');
+    const { int, frac } = this.shownDigits();
     placeNumber(D, int, frac);
     D.minus = this.x < 0n;
     return D;
@@ -1097,6 +1120,14 @@ function placeTime(D, h, mm, ss) {
   D.cells[10].ch = ss[0];
   D.cells[11].ch = ss[1];
   D.cells[11].dp = true;
+}
+
+function placeTimeEntry(D, e) {
+  const mm = e.m === '' && e.stage === 'm' ? '00' : (e.m || '').slice(-2).padStart(2, '0');
+  let ss = '--';
+  if (e.stage === 's' || (e.m && e.m.length)) ss = (e.s || '').slice(-2).padStart(2, '0');
+  placeTime(D, e.h.replace(/^0+(?=\d)/, ''), mm, ss);
+  D.minus = e.neg;
 }
 
 function placeDate(D, m, d) {

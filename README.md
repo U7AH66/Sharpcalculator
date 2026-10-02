@@ -18,7 +18,7 @@ A personal, offline-capable web replica of the SHARP EL-G37 学校用電卓, bui
 Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 `/?segments` lights every LCD segment for a visual check.
 
-## Behaviors inferred (not stated in the manual) — verify on the real calculator
+## Behaviors not stated in the manual — checked against the real calculator
 
 | # | Behavior implemented | Check |
 |---|---|---|
@@ -26,22 +26,24 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | 2 | `a + =` → a; `a − =` → −a (a becomes the constant); `a × =` → a²; `a ÷ =` → 1/a | ✅ confirmed on device |
 | 3 | `x %` with no operator → 0 | ✅ confirmed on device |
 | 4 | With TAB fixed (e.g. 2), a zero result shows `0.00`; recalling an empty GT/memory shows `0.` (p.27) | ✅ result confirmed on device (recall case from manual) |
-| 5 | CE right after a result clears the display to 0; CE right after an operator does nothing | ☐ |
-| 6 | → only edits a number being entered; it does nothing on a calculated result | ☐ |
-| 7 | M+/M− after a bare number adds just that number (no constant applied); with a pending operation it acts as = and sets the constant; M+/M− are not added to GT | ☐ |
-| 8 | RM / GT recall counts as one entry in the counter (supported by p.13: C GT GT → 01) | ☐ |
-| 9 | A (adding) mode: entry shows as typed (`145.`) and is converted to 1.45 when used by + / − / = / M+ / M−; results show 2 decimals | ☐ |
-| 10 | Typing a 13th integer digit shows the 概算 form with E (`1.23456789012`); → drops the 13th digit, CE clears to 0 | ☐ |
-| 11 | Non-recoverable errors (①②④⑤⑥⑨, 25+ digit results) show `E 0.`; memory/GT keep their previous value on ④ | ☐ |
-| 12 | After clearing a 概算 error with CE and continuing, a result that still has 13–24 integer digits shows E again | ☐ |
-| 13 | 時間: typing minutes immediately turns `--` into `00`; minutes/seconds keep the last 2 digits; a decimal number + 日数/時間 converts it to 60進 | ☐ |
-| 14 | 時間: a result toggled to 10進 with 日数/時間 shows the floating value (not TAB-rounded); RM/GT recall shows 60進 if the last stored value was 60進 | ☐ |
-| 15 | Pressing 日数/時間 in normal mode mid-calculation enters the mode and clears the calculation (memory kept) | ☐ |
-| 16 | 日数: 0 days (or 1 day in 両入) → error ⑦; more than 1 year → ⑥; a 期間計算 day count can go into memory/GT | ☐ |
-| 17 | `a × b %` then `c %` → a × c % (constant), mirroring the manual’s ÷ example | ☐ |
-| 18 | 切り上げ / 四捨五入 work on magnitude (negative numbers round away from zero) | ☐ |
-| 19 | Counter wraps from 99 to 00 | ☐ |
-| 20 | Two-key rollover: a key pressed while another is held is entered when the first key is released | ☐ |
+| 5 | CE does nothing right after a result or right after an operator (it only clears an entry or a recalled value) | ✅ confirmed on device |
+| 6 | → also works on a result, dropping its last digit (`2.5` → `2.`) | ✅ confirmed on device |
+| 7 | M+/M− after a plain number adds just that number; M+/M− are not added to GT | ✅ confirmed on device |
+| 8 | RM / GT recall counts as one entry in the counter | ✅ confirmed on device |
+| 9 | A (adding) mode: entry shows as typed (`145.`) and becomes 1.45 when + is pressed | ✅ confirmed on device |
+| 10 | A 13th integer digit is not entered; E shows with the 12 digits; → or CE clears the error | ✅ confirmed on device (CE clearing to 0 is from the manual) |
+| 11 | Non-recoverable errors show `E 0.` | ✅ confirmed on device |
+| 12 | After clearing a 概算 error, further 概算 results show without E | ✅ confirmed on device |
+| 13 | 時間: typing minutes turns `--` into `00`; a decimal number + 日数/時間 converts it to 60進 | ✅ confirmed on device |
+| 13b | 時間: 60+ minutes show as typed (`4-75'00.`) even after an operator; they carry over in the result | ✅ display confirmed on device (carry-over from manual) |
+| 14 | 時間: 日数/時間 after a 60進 + 10進 result | ❓ device showed `E 0.` — under investigation |
+| 14b | 時間: RM shows 60進 when a 60進 value was stored | ✅ confirmed on device |
+| 15 | 日数/時間 does nothing while a calculation is in progress | ✅ confirmed on device |
+| 16 | 日数: invalid day count → error; over 1 year → error; a 期間計算 day count can go into memory | ✅ confirmed on device |
+| 17 | `a × b %` then `c %` → a × c % | ✅ confirmed on device |
+| 18 | 切り上げ / 四捨五入 round negatives away from zero | ✅ confirmed on device |
+| 19 | Counter after 99 | ❓ under investigation |
+| 20 | Two-key rollover: hold 1, press 2, release 1 → `12` | ✅ confirmed on device |
 
 ## Credits
 
