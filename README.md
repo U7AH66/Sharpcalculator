@@ -38,7 +38,8 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | 13b | 時間: 60+ minutes show as typed (`4-75'00.`) even after an operator; they carry over in the result | ✅ display confirmed on device (carry-over from manual) |
 | 14 | 時間: a result switched to 10進 with 日数/時間 follows the TAB/round switches (`1.33` with TAB 2); switching back restores the exact 60進 value | ✅ confirmed on device |
 | 14b | 時間: RM shows 60進 when a 60進 value was stored | ✅ confirmed on device |
-| 15 | 日数/時間 does nothing while an operation is pending (`5 +`); right after a number or after `=` it enters 日数/時間 mode | ✅ confirmed on device |
+| 15 | 日数/時間 does nothing while an operation is pending (`5 +`); after `=` it enters 日数/時間 mode | ✅ confirmed on device |
+| 15b | A number typed before 日数/時間 carries into the mode: `2 日数/時間` → `2-00'--.` (時間) or `2月 0日` (日数) | ✅ confirmed on device |
 | 16 | 日数: invalid day count → error; over 1 year → error; a 期間計算 day count can go into memory | ✅ confirmed on device |
 | 17 | `a × b %` then `c %` → a × c % | ✅ confirmed on device |
 | 18 | 切り上げ / 四捨五入 round negatives away from zero | ✅ confirmed on device |

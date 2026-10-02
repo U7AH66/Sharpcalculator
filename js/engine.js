@@ -843,12 +843,21 @@ export class Calculator {
   // ---- 日数/時間 ----
   keyDT(wasFresh) {
     if (this.mode === 'normal') {
-      if (this.op) return; // 演算の途中では働かない（置数の直後は切り替わる）
+      if (this.op) return; // 演算の途中では働かない
       const m = this.lastMode;
+      const e = this.entry && !this.entry.uncounted && this.entry.kind === 'num' ? this.entry : null;
       this.clearCalc();
       this.mode = m;
-      this.fresh = true;
-      return;
+      if (!e) {
+        this.fresh = true;
+        return;
+      }
+      // 直前の置数はそのまま時（時間計算）または月（日数計算）になる
+      this.entry = e;
+      this.entries = 1;
+      this.operandCounted = true;
+      this.hasOperand = true;
+      return this.keyDT(false);
     }
     if (wasFresh) {
       this.mode = this.mode === 'day' ? 'time' : 'day';
@@ -1060,7 +1069,7 @@ export class Calculator {
       } else if (e.kind === 'time') {
         placeTimeEntry(D, e);
       } else if (e.kind === 'date') {
-        placeDate(D, e.m.replace(/^0+(?=\d)/, ''), e.d === '' ? '' : e.d.slice(-2).replace(/^0(?=\d)/, ''));
+        placeDate(D, e.m.replace(/^0+(?=\d)/, ''), e.d === '' ? '0' : e.d.slice(-2).replace(/^0(?=\d)/, ''));
       }
       return D;
     }
