@@ -1,0 +1,103 @@
+:root {
+  --bg-1: #e4e3df;
+  --bg-2: #cfcec9;
+  --seg: #161b18;
+  --teal: #19a6c3;
+  --print: #2b2e31;
+  --green: #2f7a52;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 30%, var(--bg-1), var(--bg-2));
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(10px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+
+svg.calc {
+  display: block;
+  width: min(100%, calc((100dvh - max(10px, env(safe-area-inset-top)) - max(10px, env(safe-area-inset-bottom))) * 1120 / 1814));
+  height: auto;
+  max-width: 560px;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+  font-family: "Helvetica Neue", Helvetica, Arial, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+
+/* 触覚用の隠しスイッチ */
+.haptic {
+  position: fixed;
+  left: -100px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ロゴ・印刷 */
+.logo path { fill: #b7babd; }
+.brand-sub {
+  font-family: Optima, Candara, "Gill Sans", "Helvetica Neue", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  fill: #a9adb0;
+  letter-spacing: 0.5px;
+}
+.brand-sub.model { font-family: "Helvetica Neue", Arial, sans-serif; font-weight: 400; letter-spacing: 1.5px; }
+.print { font-size: 25px; fill: var(--print); font-weight: 500; }
+.print.wide { letter-spacing: 6.6px; font-size: 24px; }
+.print.small { font-size: 21px; font-weight: 600; }
+.print.green { fill: var(--green); font-size: 24px; font-weight: 700; font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+.print-stroke { fill: none; stroke: var(--print); stroke-width: 3.5; stroke-linecap: round; }
+
+/* 液晶 */
+.lcd-frame { fill: #0b0c0d; }
+.lcd-glass { fill: url(#gGlass); }
+.lcd-shade { fill: url(#gShade); pointer-events: none; }
+.lcd .seg, .lcd .sym { fill: var(--seg); opacity: 0; transition: opacity 40ms linear; }
+.lcd .seg.on, .lcd .sym.on { opacity: 0.93; }
+.lcd text.sym { font-family: "Helvetica Neue", Arial, sans-serif; }
+.lcd text.sym.b { font-weight: 700; }
+.lcd text.sym.jp, .lcd .jp { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; font-weight: 700; }
+.lcd .symbox { fill: var(--seg); }
+.lcd .symbox-line { fill: none; stroke: var(--seg); stroke-width: 2.5; }
+.lcd .sym-in { fill: var(--seg); font-weight: 700; font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; }
+.lcd .glyph { stroke: #c9ccc2; stroke-width: 4; fill: none; stroke-linecap: square; }
+.lcd .glyph-dot { fill: #c9ccc2; }
+
+/* スイッチ */
+.switch { cursor: pointer; }
+.switch .knob { transition: transform 90ms ease-out; }
+
+/* キー */
+.key { cursor: pointer; }
+.key-base { fill: #050606; }
+.key-edge { fill: #0b0c0d; }
+.key-hi { fill: #fff; opacity: 0.1; }
+.key.pink .key-hi { opacity: 0.22; }
+.key-top { transition: transform 45ms ease-out; }
+.key.down .key-top { transform: translateY(4px); }
+.key.down .key-top > rect:nth-child(2) { filter: brightness(0.88); }
+.klabel { fill: #f3f4f4; font-weight: 400; }
+.klabel.teal { fill: var(--teal); font-weight: 500; }
+.klabel.jp { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif; font-weight: 500; }
+.kstroke { fill: none; stroke: #f3f4f4; stroke-width: 4.5; stroke-linejoin: miter; }
+.kfill { fill: #f3f4f4; }

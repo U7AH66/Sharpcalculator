@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EL-G37 engine tests</title>
+<style>
+  body { font: 14px/1.5 ui-monospace, Menlo, monospace; margin: 16px; background: #fff; color: #111; }
+  .pass { color: #16794a; } .fail { color: #c0262d; font-weight: bold; }
+  h1 { font-size: 16px; }
+</style>
+</head>
+<body>
+<h1>EL-G37 取扱説明書の計算例テスト</h1>
+<div id="summary"></div>
+<pre id="out"></pre>
+<script type="module">
+import { Calculator } from '../js/engine.js';
+
+// 表示を文字列化：例 "E 2'015.6250 [03=]"
+export function text(D) {
+  let s = '';
+  let started = false;
+  for (const c of D.cells) {
+    if (!started && !c.ch) continue;
+    started = true;
+    s += c.ch || ' ';
+    if (c.comma) s += "'";
+    if (c.dp) s += '.';
+  }
+  return (D.minus ? '-' : '') + s;
+}
+
+const KEYS = new Set(['+','-','*','/','=','%','SQRT','PM','SHIFT','CE','C','CA','CM','RM','M+','M-','GT','DT','00']);
+function run(calc, seq) {
+  for (const tok of seq.trim().split(/\s+/)) {
+    if (KEYS.has(tok)) calc.press(tok);
+    else for (const ch of tok) calc.press(ch);
+  }
+}
+
+// [説明, スイッチ, [[キー操作, 期待表示, {ctr, eqSym, E, M, G, op, hi, tsuki, kara}]...]]
+const T = [
+  ['p10 カウンター 23×(−2)÷4', {}, [
+    ['C', '0.', { ctr: '00' }],
+    ['2 3', '23.', { ctr: '01' }],
+    ['*', '23.', { ctr: '01', op: '*', dot: true }],
+    ['2 PM', '-2.', { ctr: '02', op: '*', dot: false }],
+    ['/', '-46.', { ctr: '02', op: '/' }],
+    ['4 =', '-11.5', { ctr: '03', eq: true, op: null }],
+  ]],
+  ['p12 複利終価の＝回数', {}, [
+    ['C 1 + 0.05 * 400000 =', "420'000.", { ctr: '03', eqSym: false }],
+    ['=', "441'000.", { ctr: '02', eqSym: true }],
+    ['=', "463'050.", { ctr: '03', eqSym: true }],
+  ]],
+  ['p13 GTメモリー回数', { gt: true }, [
+    ['C GT GT', '0.', { ctr: '01' }],
+    ['478 + 896 + 101 =', "1'475.", { ctr: '03', G: true }],
+    ['357 - 741 - 200 =', '-584.', { ctr: '03' }],
+    ['GT', '891.', { ctr: '02', eqSym: true }],
+  ]],
+  ['p14 メモリー回数', {}, [
+    ['C CM', '0.', { ctr: '00' }],
+    ['25 * 5 M+', '125.', { ctr: '02', M: true, eq: true }],
+    ['84 / 3 M-', '28.', { ctr: '02' }],
+    ['RM', '97.', { ctr: '02', eqSym: true }],
+  ]],
+  ['p16 時間 加算', {}, [
+    ['C DT DT', '0.', { ctr: '00', jikan: true }],
+    ['4 DT 15 DT 20 +', "4-15'20.", { ctr: '01', op: '+' }],
+    ['3 DT 50 DT 18', "3-50'18.", { ctr: '02' }],
+    ['=', "8-05'38.", { ctr: '02', eq: true }],
+    ['DT', '8.09388888888', {}],
+    ['DT', "8-05'38.", {}],
+  ]],
+  ['p15 時間入力表示', {}, [
+    ['C DT DT 4 DT', "4-00'--.", {}],
+    ['1', "4-01'00.", {}],
+  ]],
+  ['p17 時間 乗算', {}, [
+    ['C DT DT', '0.', { jikan: true }],
+    ['20 DT 30 +', "20-30'00.", { ctr: '01' }],
+    ['18 DT *', "38-30'00.", { ctr: '02', op: '*' }],
+    ['1500', "1'500.", { ctr: '03' }],
+    ['=', "57'750.", { ctr: '03' }],
+  ]],
+  ['p20 期間計算（片落）', { round: 'half' }, [
+    ['C DT', '0.', { nissu: true }],
+    ['10 DT 21 %', '10 21', { ctr: '01', kara: true, tsuki: true, hi: true }],
+    ['12 DT 24', '12 24', { ctr: '02', kara: true }],
+    ['=', '64', { ctr: '02', hi: true, tsuki: false, eq: true }],
+  ]],
+  ['p20 期日計算（両入）', { round: 'up' }, [
+    ['C DT', '0.', { nissu: true }],
+    ['3 DT 27 +', '3 27', { ctr: '01', op: '+' }],
+    ['50', '50.', { ctr: '02', op: '+' }],
+    ['=', '5 15', { ctr: '02', tsuki: true, hi: true }],
+  ]],
+  ['p21 うるう年の例', { round: 'half' }, [
+    ['C DT 2 DT 25 % 3 DT 9 =', '12', {}],
+    ['C DT 4 DT 1 % 4 DT 1 =', '365', {}],
+  ]],
+  ['p21 期日 2/25+50（両入）', { round: 'up' }, [
+    ['C DT 2 DT 25 + 50 =', '4 15', {}],
+    ['C DT 5 DT 15 - 50 =', '3 27', {}],
+  ]],
+  ['p22 加減乗除 TAB2', { tab: '2' }, [['C 12.3 - 15.2 + 26.7 =', '23.80', {}]]],
+  ['p22 TAB4', { tab: '4' }, [['C 3750 / 8 * 4.3 =', "2'015.6250", {}]]],
+  ['p22 TAB5', { tab: '5' }, [['C 12 * 45 / 7 =', '77.14286', {}]]],
+  ['p22 負数', {}, [['C 1.2 PM * 32 / 0.4 =', '-96.', {}]]],
+  ['p22-23 定数計算', { tab: '0' }, [
+    ['C 34 + 57 =', '91.', {}], ['45 =', '102.', {}],
+    ['C 48 - 23 =', '25.', {}], ['14 =', '-9.', {}],
+    ['C 68 * 25 =', "1'700.", {}], ['40 =', "2'720.", {}],
+  ]],
+  ['p23 除数定数', {}, [['C 35 / 14 =', '2.5', {}], ['98 =', '7.', {}]]],
+  ['p23 パーセント・割増・割引', { tab: '0' }, [
+    ['C 200 * 10 %', '20.', {}],
+    ['C 9 / 36 %', '25.', {}],
+    ['C 200 * 10 % + =', '220.', {}],
+    ['C 200 + 10 %', '220.', {}],
+    ['C 500 * 20 % - =', '400.', {}],
+    ['C 500 - 20 %', '400.', {}],
+  ]],
+  ['p23 べき計算', { tab: '0' }, [['C 4 * = = * =', "4'096.", {}]]],
+  ['p23 開平', { tab: '3', round: 'down' }, [['C 6 SQRT + 5 SQRT =', '4.685', {}]]],
+  ['p23 逆数', { tab: '3', round: 'up' }, [['C 5 + 7 / =', '0.084', {}]]],
+  ['p24 メモリー累計', { tab: '0' }, [
+    ['C CM 25 * 5 M+', '125.', { M: true }],
+    ['84 / 3 M-', '28.', {}],
+    ['68 + 17 M+', '85.', {}],
+    ['RM', '182.', {}],
+  ]],
+  ['p24 一時記憶', {}, [['C CM 14 M+ 3 * 2 M-', '6.', {}], ['52 - 35 / RM =', '2.125', {}]]],
+  ['p24 定数記憶', {}, [['C CM 12 + 14 M+', '26.', {}], ['135 * RM =', "3'510.", {}], ['RM / 5 =', '5.2', {}]]],
+  ['p24 単利計算', { tab: '0', round: 'down' }, [
+    ['C CM 483000 M+', "483'000.", {}],
+    ['* 5.5 % * 179 /', "4'755'135.", {}],
+    ['365 M+', "13'027.", {}],
+    ['RM', "496'027.", {}],
+  ]],
+  ['p25 GTメモリー', { gt: true }, [
+    ['C GT GT 23.5 + 42.3 =', '65.8', {}],
+    ['72.4 - 37.3 + 12 =', '47.1', {}],
+    ['27 - 19 - 21.6 =', '-13.6', {}],
+    ['GT', '99.3', {}],
+  ]],
+  ['p25 アディングモード', { tab: 'A' }, [
+    ['C 145 +', '1.45', {}],
+    ['5676 +', '58.21', {}],
+    ['4500 +', '103.21', {}],
+    ['763 PM =', '95.58', {}],
+  ]],
+  ['p25 入力訂正', {}, [
+    ['C 2 + 3 CE 4 =', '6.', {}],
+    ['C 5 * / 2 =', '2.5', {}],
+    ['C 123456 SHIFT SHIFT 78', "123'478.", {}],
+  ]],
+  ['p27 見取算', { gt: true, tab: '2', round: 'half' }, [
+    ['C GT GT CM', '0.', {}],
+    ['394 + 51 + 267 =', '712.00', { G: true }],
+    ['528 - 76 - 103 =', '349.00', {}],
+    ['80 + 429 + 61 =', '570.00', {}],
+    ['GT M+', "1'631.00", { M: true, G: true }],
+    ['GT GT', "1'631.00", { M: true, G: false }],
+    ['951 - 672 - 483 =', '-204.00', {}],
+    ['254 + 753 + 610 =', "1'617.00", {}],
+    ['GT M+', "1'413.00", {}],
+    ['RM', "3'044.00", { ctr: '02', eqSym: true }],
+    ['GT / RM %', '46.42', {}],
+    ['1631 %', '53.58', {}],
+  ]],
+  ['p28 手形割引', { round: 'up', tab: '0' }, [
+    ['C DT 2 DT 6 %', '2  6', {}],
+    ['4 DT 26 =', '80', { hi: true }],
+    ['@round=down C CM', '0.', {}],
+    ['560000 M+', "560'000.", {}],
+    ['80 * RM *', "44'800'000.", {}],
+    ['0.0926 / 365 M-', "11'365.", {}],
+    ['RM', "548'635.", { ctr: '02', eqSym: true }],
+  ]],
+  ['p29 複利現価', {}, [
+    ['C 640000 * 0.76641673 =', "490'506.7072", {}],
+    ['C 640000 / 1.03 = = = = = = = = =', "490'506.708696", { ctr: '09', eqSym: true }],
+  ]],
+  ['p30 減価償却', {}, [
+    ['C 1 - 0.250 * = =', '0.421875', { ctr: '02', eqSym: true }],
+    ['* 1000000 =', "421'875.", {}],
+  ]],
+  ['p30 減価償却（メモリー）', { tab: '0', round: 'down' }, [
+    ['C CM', '0.', {}],
+    ['1000000 M+ * 0.250', '0.250', {}],
+    ['M-', "250'000.", {}],
+    ['RM * 0.250 M-', "187'500.", {}],
+    ['RM * 0.250 M-', "140'625.", {}],
+    ['RM', "421'875.", { ctr: '04', eqSym: true }],
+  ]],
+  ['p31 エラー①②③', {}, [
+    ['C 5 PM SQRT', '0.', { E: true }],
+    ['C 5 / 0 =', '0.', { E: true }],
+    ['C 1234567890123', '1.23456789012', { E: true }],
+    ['SHIFT', "123'456'789'012.", { E: false }],
+    ['C 1234567890123 CE', '0.', { E: false }],
+  ]],
+  ['p31 エラー⑦', {}, [
+    ['C DT 1 DT 32 +', '1 32', { E: true }],
+    ['CE', '0.', { E: false }],
+  ]],
+  ['p32 エラー⑧', {}, [
+    ['C DT DT 9999999 DT', "9'999'999.", { E: true }],
+    ['CE', '0.', { E: false }],
+  ]],
+  ['p32 エラー⑩ 概算', {}, [
+    ['C 987654320988 / 0.444 *', '2.22444666889', { E: true, op: '*' }],
+    ['CE', '2.22444666889', { E: false }],
+    ['555 =', "1'234.56790123", {}],
+  ]],
+  ['期日計算 範囲外⑥ と 0日⑦', { round: 'half' }, [
+    ['C DT 3 DT 1 + 366 =', '0.', { E: true }],
+    ['C DT 3 DT 1 + 0 =', '0.', { E: true }],
+    ['C DT 3 DT 1 + 365 =', '3  1', { E: false }],
+  ]],
+  ['オートパワーオフ', {}, [
+    ['C 5', '5.', {}],
+    ['@off 7', '', {}],
+    ['C', '0.', {}],
+  ]],
+];
+
+let pass = 0, fail = 0;
+const out = [];
+for (const [name, sw, steps] of T) {
+  const c = new Calculator();
+  Object.assign(c.sw, sw);
+  let ok = true;
+  const log = [];
+  for (const [keys, exp, flags] of steps) {
+    let k = keys;
+    const m = k.match(/^@round=(\w+)\s*/);
+    if (m) { c.sw.round = m[1]; k = k.slice(m[0].length); }
+    if (k.startsWith('@off')) { c.powerOff(); k = k.slice(4); }
+    run(c, k);
+    const D = c.getDisplay();
+    const got = text(D);
+    const probs = [];
+    if (got !== exp) probs.push(`表示 "${got}" ≠ "${exp}"`);
+    for (const [f, v] of Object.entries(flags)) {
+      const actual = f === 'ctr' ? D.counter : D[f];
+      if ((actual ?? null) !== v) probs.push(`${f}=${JSON.stringify(actual)} ≠ ${JSON.stringify(v)}`);
+    }
+    if (probs.length) { ok = false; log.push(`   ✗ [${keys}] ${probs.join(', ')}`); }
+  }
+  if (ok) pass++; else fail++;
+  out.push(`<span class="${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✗'} ${name}</span>` + (log.length ? '\n' + log.join('\n') : ''));
+}
+document.getElementById('summary').innerHTML = `<b class="${fail ? 'fail' : 'pass'}">${pass} passed, ${fail} failed</b>`;
+document.getElementById('out').innerHTML = out.join('\n');
+window.__results = { pass, fail };
+</script>
+</body>
+</html>
