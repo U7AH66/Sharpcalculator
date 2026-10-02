@@ -843,7 +843,7 @@ export class Calculator {
   // ---- 日数/時間 ----
   keyDT(wasFresh) {
     if (this.mode === 'normal') {
-      if (this.op || this.entry) return; // 計算途中では働かない
+      if (this.op) return; // 演算の途中では働かない（置数の直後は切り替わる）
       const m = this.lastMode;
       this.clearCalc();
       this.mode = m;

@@ -5,7 +5,7 @@ A personal, offline-capable web replica of the SHARP EL-G37 学校用電卓, bui
 
 - Pure static files (HTML/CSS/JS, no build step) — works on GitHub Pages.
 - Install on iPhone: open the site in Safari → 共有 → **ホーム画面に追加**. Runs full-screen and offline.
-- Haptics: every key and switch fires a haptic tap (iPhone: iOS 18+ with システムの触覚 enabled; Android: vibration).
+- Haptics: every key and switch fires a haptic tap (iPhone: iOS 18+ with システムの触覚 enabled, fires as the finger lifts; Android: vibration on press).
 - Memory, GT memory, switch positions and the last 日数/時間 mode are kept when the app is closed
   (like the built-in battery). 自動節電機能: display turns off after ~7 minutes; press **C (ON)** or **CA**.
 - Desktop keyboard (extra, not on the device): digits, `+ - * / = % .`, Enter (=), Backspace (→),
@@ -38,7 +38,7 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | 13b | 時間: 60+ minutes show as typed (`4-75'00.`) even after an operator; they carry over in the result | ✅ display confirmed on device (carry-over from manual) |
 | 14 | 時間: a result switched to 10進 with 日数/時間 follows the TAB/round switches (`1.33` with TAB 2); switching back restores the exact 60進 value | ✅ confirmed on device |
 | 14b | 時間: RM shows 60進 when a 60進 value was stored | ✅ confirmed on device |
-| 15 | 日数/時間 does nothing while a calculation is in progress; after `=` it enters 日数/時間 mode | ✅ confirmed on device |
+| 15 | 日数/時間 does nothing while an operation is pending (`5 +`); right after a number or after `=` it enters 日数/時間 mode | ✅ confirmed on device |
 | 16 | 日数: invalid day count → error; over 1 year → error; a 期間計算 day count can go into memory | ✅ confirmed on device |
 | 17 | `a × b %` then `c %` → a × c % | ✅ confirmed on device |
 | 18 | 切り上げ / 四捨五入 round negatives away from zero | ✅ confirmed on device |

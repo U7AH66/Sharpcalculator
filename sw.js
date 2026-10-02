@@ -1,5 +1,5 @@
 // オフラインでも使えるようにアプリ一式をキャッシュする
-const CACHE = 'elg37-v1';
+const CACHE = 'elg37-v2';
 const FILES = [
   './',
   './index.html',

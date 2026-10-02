@@ -25,6 +25,7 @@ const calc = new Calculator(load());
 
 // ---------- 触覚フィードバック ----------
 // iOS 18以降の Safari は Vibration API 非対応のため、システムスイッチの切替で触覚を発生させる
+// iOS ではタッチ開始時はユーザー操作として扱われないため、指を離した瞬間（touchend）に発生させる
 const haptic = (() => {
   if (typeof navigator.vibrate === 'function') {
     return () => navigator.vibrate(10);
@@ -38,7 +39,19 @@ const haptic = (() => {
   input.tabIndex = -1;
   label.appendChild(input);
   document.body.appendChild(label);
-  return () => label.click();
+  let pending = false;
+  document.addEventListener(
+    'touchend',
+    () => {
+      if (!pending) return;
+      pending = false;
+      label.click();
+    },
+    { passive: true }
+  );
+  return () => {
+    pending = true;
+  };
 })();
 
 // ---------- SVG 本体 ----------
