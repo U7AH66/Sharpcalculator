@@ -885,9 +885,21 @@ export class Calculator {
       }
       if (this.op && !this.hasOperand) return;
       // 結果表示後：60進数 ⇔ 10進数
-      if (!this.xSexa) this.checkSexa(this.x);
-      this.xSexa = !this.xSexa;
-      this.xDec = null;
+      if (this.xSexa) {
+        // 10進数表示は TAB・ラウンドスイッチに従う（元の値は60進数に戻すときのため保持）
+        const orig = this.x;
+        this.x = this.result(orig, false, false);
+        this.pendingApprox = false;
+        this.sexaStash = { orig, shown: this.x };
+        this.xSexa = false;
+      } else {
+        const st = this.sexaStash;
+        if (st && st.shown === this.x) this.x = st.orig;
+        this.checkSexa(this.x);
+        this.xSexa = true;
+        this.xDec = null;
+      }
+      this.sexaStash = this.xSexa ? null : this.sexaStash;
       this.lastKey = 'DT';
       return;
     }

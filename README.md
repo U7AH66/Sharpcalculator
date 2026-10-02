@@ -36,13 +36,13 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | 12 | After clearing a 概算 error, further 概算 results show without E | ✅ confirmed on device |
 | 13 | 時間: typing minutes turns `--` into `00`; a decimal number + 日数/時間 converts it to 60進 | ✅ confirmed on device |
 | 13b | 時間: 60+ minutes show as typed (`4-75'00.`) even after an operator; they carry over in the result | ✅ display confirmed on device (carry-over from manual) |
-| 14 | 時間: 日数/時間 after a 60進 + 10進 result | ❓ device showed `E 0.` — under investigation |
+| 14 | 時間: a result switched to 10進 with 日数/時間 follows the TAB/round switches (`1.33` with TAB 2); switching back restores the exact 60進 value | ✅ rounding confirmed on device (exact restore inferred) |
 | 14b | 時間: RM shows 60進 when a 60進 value was stored | ✅ confirmed on device |
-| 15 | 日数/時間 does nothing while a calculation is in progress | ✅ confirmed on device |
+| 15 | 日数/時間 does nothing while a calculation is in progress; after `=` it enters 日数/時間 mode | ✅ confirmed on device |
 | 16 | 日数: invalid day count → error; over 1 year → error; a 期間計算 day count can go into memory | ✅ confirmed on device |
 | 17 | `a × b %` then `c %` → a × c % | ✅ confirmed on device |
 | 18 | 切り上げ / 四捨五入 round negatives away from zero | ✅ confirmed on device |
-| 19 | Counter after 99 | ❓ under investigation |
+| 19 | Counter wraps from 99 to 00 | ✅ confirmed on device |
 | 20 | Two-key rollover: hold 1, press 2, release 1 → `12` | ✅ confirmed on device |
 
 ## Credits
