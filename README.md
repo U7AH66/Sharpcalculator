@@ -23,8 +23,8 @@ Serve the folder (`python3 -m http.server`) and open `/tests/engine.test.html`.
 | # | Behavior implemented | Check |
 |---|---|---|
 | 1 | Negative sign uses the fixed “−” segment in the left column (per the LCD diagram), not a minus next to the digits | ☐ |
-| 2 | `a + =` → a+a (constant +a); `a − =` → 0 (constant −a). (`a × =` square and `a ÷ =` reciprocal are from the manual) | ☐ |
-| 3 | `x %` with no operator → x ÷ 100 | ☐ |
+| 2 | `a + =` → a; `a − =` → −a (a becomes the constant); `a × =` → a²; `a ÷ =` → 1/a | ✅ confirmed on device |
+| 3 | `x %` with no operator → 0 | ✅ confirmed on device |
 | 4 | With TAB fixed (e.g. 2), a zero result shows `0.` not `0.00` (from p.27 showing `0.` after GT GT CM) | ☐ |
 | 5 | CE right after a result clears the display to 0; CE right after an operator does nothing | ☐ |
 | 6 | → only edits a number being entered; it does nothing on a calculated result | ☐ |

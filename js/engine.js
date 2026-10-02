@@ -506,6 +506,11 @@ export class Calculator {
         this.K = { op, k: b, ks: bs };
         r = this.apply(S, op, b);
         rs = false;
+      } else if (noOperand) {
+        // a ＋ ＝ → a、a － ＝ → －a（a が加数・減数の定数になる）
+        this.K = { op, k: b, ks: bs };
+        r = this.apply(0n, op, b);
+        rs = this.sexaOf(op, false, bs);
       } else {
         this.K = { op, k: b, ks: bs };
         r = this.apply(this.acc, op, b);
@@ -616,7 +621,8 @@ export class Calculator {
         if (this.K.k === 0n) fail(2);
         r = mul(div(c, this.K.k), HUNDRED);
       } else {
-        r = div(c, HUNDRED);
+        // 演算命令のない ％ は 0
+        r = 0n;
       }
     }
     const v = this.result(r, rs, addon);
